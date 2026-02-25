@@ -69,14 +69,14 @@ UNPRIVILEGED="0"  # Privilégié par défaut (nécessaire pour pct)
 # ── Sélection template Debian ────────────────────────────────
 get_template() {
   local tmpl
-  tmpl=$(pveam list local 2>/dev/null | grep "debian-12" | sort -V | tail -1 | awk '{print $1}')
+  tmpl=$(pveam list local 2>/dev/null | grep "debian-12-standard" | sort -V | tail -1 | awk '{print $1}')
   if [ -z "$tmpl" ]; then
-    msg_info "Téléchargement du template Debian 12"
+    msg_info "Téléchargement du template Debian 12 standard"
     pveam update &>/dev/null
     local avail
-    avail=$(pveam available --section system | grep "debian-12" | sort -V | tail -1 | awk '{print $1}')
+    avail=$(pveam available --section system | grep "debian-12-standard" | sort -V | tail -1 | awk '{print $1}')
     pveam download local "$avail" &>/dev/null
-    tmpl=$(pveam list local | grep "debian-12" | sort -V | tail -1 | awk '{print $1}')
+    tmpl=$(pveam list local | grep "debian-12-standard" | sort -V | tail -1 | awk '{print $1}')
   fi
   echo "$tmpl"
 }
