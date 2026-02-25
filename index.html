@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traefik Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #0f1216;
+    --bg3: #151a20;
+    --bg4: #1c2330;
+    --border: #1e2d3d;
+    --border2: #243447;
+    --green: #00ff88;
+    --green2: #00cc6a;
+    --green-dim: rgba(0,255,136,0.08);
+    --green-glow: rgba(0,255,136,0.15);
+    --red: #ff4060;
+    --red-dim: rgba(255,64,96,0.1);
+    --yellow: #ffcc00;
+    --yellow-dim: rgba(255,204,0,0.1);
+    --blue: #4d9fff;
+    --blue-dim: rgba(77,159,255,0.1);
+    --cyan: #00d4ff;
+    --text: #c8d8e8;
+    --text2: #7a9ab8;
+    --text3: #4a6a88;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* ─── Header ─────────────────────────────────────────── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--green);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-top: 1px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .badge {
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+  .badge-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,64,96,0.2); }
+  .badge-yellow{ background: var(--yellow-dim);color: var(--yellow);border: 1px solid rgba(255,204,0,0.2); }
+  .badge-blue  { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(77,159,255,0.2); }
+
+  /* ─── Layout ─────────────────────────────────────────── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 56px);
+  }
+
+  .main-panel {
+    overflow-y: auto;
+    padding: 24px;
+    border-right: 1px solid var(--border);
+  }
+
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── Toolbar ────────────────────────────────────────── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .toolbar-title {
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .toolbar-right {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ─── Buttons ────────────────────────────────────────── */
+  button {
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 7px 14px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--green2); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--bg4);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover { background: var(--bg3); border-color: var(--text3); }
+
+  .btn-danger {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255,64,96,0.2);
+  }
+  .btn-danger:hover { background: rgba(255,64,96,0.2); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    padding: 5px 10px;
+  }
+  .btn-ghost:hover { color: var(--text); background: var(--bg3); }
+
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ─── Stats bar ──────────────────────────────────────── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--sans);
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.red   { color: var(--red); }
+  .stat-value.yellow{ color: var(--yellow); }
+
+  /* ─── LXC Grid ───────────────────────────────────────── */
+  .lxc-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lxc-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .lxc-card:hover { border-color: var(--border2); }
+  .lxc-card.has-traefik { border-left: 3px solid var(--green); }
+  .lxc-card.no-traefik  { border-left: 3px solid var(--border); }
+
+  .lxc-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .lxc-header:hover { background: var(--bg3); }
+
+  .vmid {
+    font-size: 11px;
+    color: var(--text3);
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  .lxc-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-running { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .dot-stopped { background: var(--text3); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .lxc-name {
+    font-weight: 500;
+    color: #fff;
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .lxc-services-preview {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 2;
+  }
+
+  .service-chip {
+    background: var(--green-dim);
+    border: 1px solid rgba(0,255,136,0.15);
+    color: var(--green);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .no-service-chip {
+    color: var(--text3);
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .lxc-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .chevron {
+    color: var(--text3);
+    font-size: 10px;
+    margin-left: 8px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .chevron.open { transform: rotate(180deg); }
+
+  /* ─── LXC Body (expanded) ────────────────────────────── */
+  .lxc-body {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    background: var(--bg);
+  }
+  .lxc-body.open { display: block; }
+
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  /* Service rows */
+  .services-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+  }
+
+  .services-table th {
+    text-align: left;
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .services-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .services-table tr:last-child td { border-bottom: none; }
+
+  .domain-link {
+    color: var(--cyan);
+    text-decoration: none;
+    font-size: 12px;
+  }
+  .domain-link:hover { text-decoration: underline; }
+
+  /* ─── Add/Edit form ──────────────────────────────────── */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 100px auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  input, select {
+    background: var(--bg4);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--green); }
+  input::placeholder { color: var(--text3); }
+
+  select option { background: var(--bg4); }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  /* ─── Logs panel ─────────────────────────────────────── */
+  .logs-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  .logs-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 1.5s infinite;
+  }
+
+  .logs-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    background: var(--bg);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  .log-line {
+    display: block;
+    padding: 1px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    opacity: 0;
+    animation: fadeIn 0.2s forwards;
+  }
+
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .log-ok     { color: var(--green); }
+  .log-warn   { color: var(--yellow); }
+  .log-err    { color: var(--red); }
+  .log-info   { color: var(--text2); }
+  .log-event  { color: var(--cyan); }
+  .log-historical { opacity: 0.4 !important; }
+
+  .logs-body::-webkit-scrollbar { width: 4px; }
+  .logs-body::-webkit-scrollbar-track { background: transparent; }
+  .logs-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ─── Modal ──────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    width: 560px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .field-group { margin-bottom: 14px; }
+  .field-label {
+    display: block;
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  /* ─── Toast ──────────────────────────────────────────── */
+  .toasts {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 600;
+  }
+
+  .toast {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 12px;
+    max-width: 320px;
+    animation: slideIn 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red); }
+  .toast.info    { border-left: 3px solid var(--blue); }
+
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ─── Loading ─────────────────────────────────────────── */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--text3);
+    gap: 12px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbars */
+  .main-panel::-webkit-scrollbar { width: 4px; }
+  .main-panel::-webkit-scrollbar-track { background: transparent; }
+  .main-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">T</div>
+    <div>
+      <div class="logo-text">Traefik Manager</div>
+      <div class="logo-sub" id="base-domain">chargement...</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="badge badge-green" id="watcher-status">● WATCHER ACTIF</span>
+    <button class="btn-secondary" onclick="refreshAll()">⟳ Rafraîchir</button>
+    <button class="btn-primary" onclick="syncAll()">⚡ Sync tout</button>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Main panel -->
+  <div class="main-panel">
+    <div class="toolbar">
+      <div class="toolbar-title">Conteneurs LXC</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Total LXC</div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">En cours</div>
+        <div class="stat-value green" id="stat-running">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Routes Traefik</div>
+        <div class="stat-value green" id="stat-routes">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sans route</div>
+        <div class="stat-value yellow" id="stat-noroute">—</div>
+      </div>
+    </div>
+
+    <!-- LXC list -->
+    <div class="lxc-grid" id="lxc-grid">
+      <div class="loading"><div class="spinner"></div> Chargement des LXC...</div>
+    </div>
+  </div>
+
+  <!-- Side panel: logs -->
+  <div class="side-panel">
+    <div class="logs-header">
+      <div class="logs-title">
+        <div class="live-dot"></div>
+        Logs sync
+      </div>
+      <button class="btn-ghost btn-sm" onclick="clearLogs()">Vider</button>
+    </div>
+    <div class="logs-body" id="logs-body"></div>
+  </div>
+</div>
+
+<!-- Modal: Edit services -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Configurer les routes</div>
+      <button class="btn-ghost btn-sm" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn-danger btn-sm" onclick="deleteServices()">Supprimer tout</button>
+      <button class="btn-primary" onclick="saveServices()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+let lxcData = [];
+let editingVmid = null;
+let editServices = [];
+let baseDomain = '';
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+
+async function init() {
+  const cfg = await fetch('/api/config').then(r => r.json());
+  baseDomain = cfg.baseDomain;
+  document.getElementById('base-domain').textContent = baseDomain;
+  await loadLxc();
+  startLogStream();
+}
+
+// ─── Load LXC ───────────────────────────────────────────────────────────────
+
+async function loadLxc() {
+  const grid = document.getElementById('lxc-grid');
+  try {
+    const data = await fetch('/api/lxc').then(r => r.json());
+    lxcData = data;
+    renderLxc(data);
+    updateStats(data);
+  } catch (e) {
+    grid.innerHTML = `<div class="loading" style="color:var(--red)">Erreur de chargement</div>`;
+  }
+}
+
+function updateStats(data) {
+  document.getElementById('stat-total').textContent = data.length;
+  document.getElementById('stat-running').textContent = data.filter(l => l.status === 'running').length;
+  document.getElementById('stat-routes').textContent = data.filter(l => l.services.length > 0).length;
+  document.getElementById('stat-noroute').textContent = data.filter(l => l.services.length === 0).length;
+}
+
+function renderLxc(data) {
+  const grid = document.getElementById('lxc-grid');
+  if (!data.length) {
+    grid.innerHTML = `<div class="loading">Aucun LXC trouvé</div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(lxc => `
+    <div class="lxc-card ${lxc.services.length ? 'has-traefik' : 'no-traefik'}" id="card-${lxc.vmid}">
+      <div class="lxc-header" onclick="toggleCard('${lxc.vmid}')">
+        <span class="vmid">${lxc.vmid}</span>
+        <div class="lxc-status-dot ${lxc.status === 'running' ? 'dot-running' : 'dot-stopped'}"></div>
+        <span class="lxc-name">${lxc.name}</span>
+        <div class="lxc-services-preview">
+          ${lxc.services.length
+            ? lxc.services.map(s => `<span class="service-chip">${s.name}.${baseDomain.split('.')[0]}</span>`).join('')
+            : `<span class="no-service-chip">pas de route</span>`
+          }
+        </div>
+        <div class="lxc-actions">
+          ${lxc.status === 'running'
+            ? `<button class="btn-secondary btn-sm" onclick="stopLxc(event,'${lxc.vmid}')">■ Stop</button>`
+            : `<button class="btn-secondary btn-sm" onclick="startLxc(event,'${lxc.vmid}')">▶ Start</button>`
+          }
+          <button class="btn-primary btn-sm" onclick="openEdit(event,'${lxc.vmid}')">⚙ Routes</button>
+        </div>
+        <span class="chevron" id="chevron-${lxc.vmid}">▼</span>
+      </div>
+      <div class="lxc-body" id="body-${lxc.vmid}">
+        ${renderLxcBody(lxc)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderLxcBody(lxc) {
+  if (!lxc.services.length) {
+    return `
+      <p class="section-label">Aucune route configurée</p>
+      <button class="btn-primary btn-sm" onclick="openEdit(event,'${lxc.vmid}')">+ Ajouter des routes</button>
+    `;
+  }
+
+  const rows = lxc.services.map(s => {
+    const domain = `${s.name}.${baseDomain}`;
+    const routeActive = lxc.routeFiles.includes(`lxc-${lxc.vmid}-${s.name}.yml`);
+    return `
+      <tr>
+        <td><a class="domain-link" href="https://${domain}" target="_blank">⬡ ${domain}</a></td>
+        <td><span class="badge ${s.scheme === 'https' ? 'badge-blue' : 'badge-green'}">${s.scheme}</span></td>
+        <td style="color:var(--text2)">:${s.port}</td>
+        <td>
+          ${routeActive
+            ? `<span class="badge badge-green">✓ actif</span>`
+            : `<span class="badge badge-red">✗ manquant</span>`
+          }
+        </td>
+        <td>
+          <button class="btn-secondary btn-sm" onclick="syncOne(event,'${lxc.vmid}')">⟳ Sync</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div class="section-label">Routes actives</div>
+    <table class="services-table">
+      <thead><tr>
+        <th>Domaine</th><th>Schéma</th><th>Port</th><th>Statut</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function toggleCard(vmid) {
+  const body = document.getElementById(`body-${vmid}`);
+  const chev = document.getElementById(`chevron-${vmid}`);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ─── LXC Actions ────────────────────────────────────────────────────────────
+
+async function startLxc(e, vmid) {
+  e.stopPropagation();
+  e.target.disabled = true;
+  try {
+    await fetch(`/api/lxc/${vmid}/start`, { method: 'POST' });
+    toast(`LXC ${vmid} démarré`, 'success');
+    setTimeout(loadLxc, 2000);
+  } catch { toast('Erreur démarrage', 'error'); }
+}
+
+async function stopLxc(e, vmid) {
+  e.stopPropagation();
+  if (!confirm(`Arrêter le LXC ${vmid} ?`)) return;
+  e.target.disabled = true;
+  try {
+    await fetch(`/api/lxc/${vmid}/stop`, { method: 'POST' });
+    toast(`LXC ${vmid} arrêté`, 'success');
+    setTimeout(loadLxc, 2000);
+  } catch { toast('Erreur arrêt', 'error'); }
+}
+
+async function syncOne(e, vmid) {
+  e.stopPropagation();
+  e.target.disabled = true;
+  try {
+    await fetch('/api/sync', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({vmid}) });
+    toast(`Sync LXC ${vmid} OK`, 'success');
+    setTimeout(loadLxc, 1500);
+  } catch { toast('Erreur sync', 'error'); }
+  finally { e.target.disabled = false; }
+}
+
+async function syncAll() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⟳ Sync...';
+  try {
+    await fetch('/api/sync', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    toast('Sync complète lancée', 'success');
+    setTimeout(loadLxc, 2000);
+  } catch { toast('Erreur sync', 'error'); }
+  finally { btn.disabled = false; btn.textContent = '⚡ Sync tout'; }
+}
+
+function refreshAll() { loadLxc(); }
+
+// ─── Edit Modal ──────────────────────────────────────────────────────────────
+
+function openEdit(e, vmid) {
+  e.stopPropagation();
+  editingVmid = vmid;
+  const lxc = lxcData.find(l => l.vmid === vmid);
+  editServices = lxc.services.map(s => ({...s}));
+  if (!editServices.length) editServices = [{ name: '', port: '', scheme: 'http', noauth: false }];
+
+  document.getElementById('modal-title').textContent = `Routes — ${lxc.name} (${vmid})`;
+  renderModalBody();
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function renderModalBody() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="services-rows">
+      ${editServices.map((s, i) => serviceRow(s, i)).join('')}
+    </div>
+    <button class="btn-secondary btn-sm" onclick="addServiceRow()" style="margin-top:10px">+ Ajouter un service</button>
+  `;
+}
+
+function serviceRow(s, i) {
+  return `
+    <div class="form-row" id="row-${i}" style="margin-bottom:10px">
+      <div class="field-group" style="margin-bottom:0">
+        <label class="field-label">Sous-domaine</label>
+        <input type="text" value="${s.name}" placeholder="mon-app" oninput="editServices[${i}].name=this.value">
+      </div>
+      <div class="field-group" style="margin-bottom:0">
+        <label class="field-label">Port</label>
+        <input type="number" value="${s.port}" placeholder="3000" oninput="editServices[${i}].port=this.value">
+      </div>
+      <div class="field-group" style="margin-bottom:0">
+        <label class="field-label">Schéma</label>
+        <select onchange="editServices[${i}].scheme=this.value">
+          <option value="http" ${s.scheme==='http'?'selected':''}>http</option>
+          <option value="https" ${s.scheme==='https'?'selected':''}>https</option>
+          <option value="noauth" ${s.scheme==='noauth'?'selected':''}>noauth</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+        <button class="btn-danger btn-sm" onclick="removeServiceRow(${i})">✕</button>
+      </div>
+    </div>
+  `;
+}
+
+function addServiceRow() {
+  editServices.push({ name: '', port: '', scheme: 'http', noauth: false });
+  renderModalBody();
+}
+
+function removeServiceRow(i) {
+  editServices.splice(i, 1);
+  renderModalBody();
+}
+
+function closeModal() {
+  document.getElementById('modal-edit').classList.remove('open');
+  editingVmid = null;
+  editServices = [];
+}
+
+async function saveServices() {
+  const valid = editServices.filter(s => s.name && s.port);
+  try {
+    await fetch(`/api/lxc/${editingVmid}/services`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ services: valid })
+    });
+    // Sync automatique après save
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ vmid: editingVmid })
+    });
+    toast('Routes enregistrées et sync lancée', 'success');
+    closeModal();
+    setTimeout(loadLxc, 1500);
+  } catch { toast('Erreur sauvegarde', 'error'); }
+}
+
+async function deleteServices() {
+  if (!confirm('Supprimer toutes les routes de ce LXC ?')) return;
+  try {
+    await fetch(`/api/lxc/${editingVmid}/services`, { method: 'DELETE' });
+    toast('Routes supprimées', 'success');
+    closeModal();
+    setTimeout(loadLxc, 1000);
+  } catch { toast('Erreur suppression', 'error'); }
+}
+
+// ─── Logs SSE ────────────────────────────────────────────────────────────────
+
+function startLogStream() {
+  const es = new EventSource('/api/logs');
+  es.onmessage = (e) => {
+    const { line, historical } = JSON.parse(e.data);
+    appendLog(line, historical);
+  };
+}
+
+function appendLog(line, historical = false) {
+  const body = document.getElementById('logs-body');
+  const span = document.createElement('span');
+  span.className = 'log-line';
+  if (historical) span.classList.add('log-historical');
+
+  if (line.includes('] OK:'))         span.classList.add('log-ok');
+  else if (line.includes('] WARN:'))  span.classList.add('log-warn');
+  else if (line.includes('] ERR:'))   span.classList.add('log-err');
+  else if (line.includes('] EVENT:')) span.classList.add('log-event');
+  else span.classList.add('log-info');
+
+  span.textContent = line;
+  body.appendChild(span);
+
+  // Garder 200 lignes max
+  while (body.children.length > 200) body.removeChild(body.firstChild);
+
+  // Auto-scroll si en bas
+  if (body.scrollHeight - body.scrollTop < body.clientHeight + 80) {
+    body.scrollTop = body.scrollHeight;
+  }
+}
+
+function clearLogs() {
+  document.getElementById('logs-body').innerHTML = '';
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `
+    <span>${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span>
+    <span>${msg}</span>
+  `;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ─── Close modal on overlay click ───────────────────────────────────────────
+
+document.getElementById('modal-edit').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── Start ───────────────────────────────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>

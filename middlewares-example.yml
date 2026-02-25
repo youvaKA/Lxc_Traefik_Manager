@@ -1,0 +1,41 @@
+# ============================================================
+# middlewares.yml — Required Traefik middlewares
+# Place in: /etc/traefik/dynamic/middlewares.yml
+# https://github.com/youvaKA/Lxc_Traefik_Manager
+# ============================================================
+
+http:
+  middlewares:
+
+    # ── IP Whitelist ─────────────────────────────────────────
+    # Edit this list with your allowed IPs
+    ip-whitelist:
+      ipAllowList:
+        sourceRange:
+          - "10.0.0.0/24"       # Internal network
+          - "10.10.20.0/24"     # VPN network
+          # - "1.2.3.4/32"      # Your public IP
+
+    # ── Security Headers ─────────────────────────────────────
+    security-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+          Server: ""
+
+    # ── Basic Auth (optional) ─────────────────────────────────
+    # Generate: htpasswd -nB user | sed -e s/\\$/\\$\\$/g
+    # admin-auth:
+    #   basicAuth:
+    #     users:
+    #       - "admin:$$2y$$05$$..."
+
+  # ── ServersTransport for self-signed certs ─────────────────
+  serversTransports:
+    insecure-transport:
+      insecureSkipVerify: true

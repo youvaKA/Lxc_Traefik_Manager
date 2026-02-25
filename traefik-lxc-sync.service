@@ -1,0 +1,16 @@
+[Unit]
+Description=Traefik LXC Sync — inotify watcher
+Documentation=https://github.com/youvaKA/Lxc_Traefik_Manager
+After=network.target pve-cluster.service
+Requires=pve-cluster.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/traefik-lxc-watcher.sh
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
